@@ -6,13 +6,13 @@ object BlackJackMain extends App{
   val dealer = Dealer(
     Seq(Ace, NonAce("10"), NonAce("9"), Ace, NonAce("10"), NonAce("9"))
     , Hand.emptyHand
-    , 0d
     , NoCard
   )
   val player = Player(
     100
     , Hand.emptyHand
     , Player.noBustStrategy
+    , 0
   )
   val (d1, p1) = game(dealer, player)
   println(d1)

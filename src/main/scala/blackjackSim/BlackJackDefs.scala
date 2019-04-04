@@ -23,24 +23,22 @@ object BlackJackDefs {
   }
   def bet(d: Dealer, p: Player): (Dealer, Player) = {
     /*
-    Player putting bet to the dealer
+    Player placing the bet (stake)
      */
-    val playerBet = p.bet
-    val newD = d.copy(bet = playerBet)
-    val newP = p.copy(bankroll = p.bankroll - playerBet)
-    (newD, newP)
+    val newP = p.copy(bankroll = p.bankroll - p.bet, stake = p.bet)
+    (d, newP)
   }
   def payOut(d: Dealer, p: Player): (Dealer, Player) = {
     /*
     Dealer decides payout after he finishes
      */
     val (d1, p1) =
-      if (p.hand.isBlackJack && d.hand.isBlackJack) (d, p.credit(d.bet))
-      else if (p.hand.isBlackJack) (d, p.credit(d.bet * 2.5))
+      if (p.hand.isBlackJack && d.hand.isBlackJack) (d, p.credit(p.stake))
+      else if (p.hand.isBlackJack) (d, p.credit(p.stake * 2.5))
       else if (p.hand.isBust) (d, p)
-      else if (d.hand.isBust) (d, p.credit(d.bet * 2))
-      else if (d.hand.total == p.hand.total) (d, p.credit(d.bet))
-      else if (d.hand.total < p.hand.total) (d, p.credit(d.bet * 2))
+      else if (d.hand.isBust) (d, p.credit(p.stake * 2))
+      else if (d.hand.total == p.hand.total) (d, p.credit(p.stake))
+      else if (d.hand.total < p.hand.total) (d, p.credit(p.stake * 2))
       else (d, p)
     reset(d1, p1)
   }
@@ -119,9 +117,9 @@ object Hand {
   def emptyHand(): Hand = Hand(Seq.empty[NonAce], 0)
 }
 
-final case class Dealer(shoe: Seq[Card], hand: Hand, bet: Double, firstCard: Card) {
+final case class Dealer(shoe: Seq[Card], hand: Hand, firstCard: Card) {
   import Hand._
-  def reset(): Dealer = this.copy(hand = emptyHand, bet = 0, firstCard = NoCard)
+  def reset(): Dealer = this.copy(hand = emptyHand, firstCard = NoCard)
   def getCard(card: Card): Dealer = firstCard match {
     case NoCard =>
       this.copy(hand = this.hand.getCard(card), firstCard = card)
@@ -147,13 +145,12 @@ object Dealer {
   }
 }
 
-final case class Player(bankroll: Double, hand: Hand, strategy: Strategy) {
+final case class Player(bankroll: Double, hand: Hand, strategy: Strategy, stake: Double) {
   import Hand._
   import Player._
-  def reset(): Player = this.copy(hand = emptyHand)
+  val bet: Double = bankroll.min(5d)
+  def reset(): Player = this.copy(hand = emptyHand, stake = 0d)
   def getCard(card: Card): Player = this.copy(hand = this.hand.getCard(card))
-  // TODO: Betting logic
-  def bet(): Double = bankroll.min(5d)
   def credit(moneyReceived: Double) = this.copy(bankroll = this.bankroll + moneyReceived)
   def action(): PlayerAction = strategy(hand)
 }
@@ -165,6 +162,6 @@ object Player {
   case object Stand extends PlayerAction
   case object Double extends PlayerAction
   case object Split extends PlayerAction
-
+  // TODO: More betting logic
   val noBustStrategy: Strategy = hand => if (hand.total <= 11) Hit else Stand
 }

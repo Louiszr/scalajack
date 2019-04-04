@@ -11,8 +11,8 @@ class BlackJackDefsSuite extends FlatSpec with Matchers{
     import Dealer._
     import Hand._
     import Player._
-    val d = Dealer(shuffle(1), emptyHand, 0d, NoCard)
-    val p = Player(100, emptyHand, noBustStrategy)
+    val d = Dealer(shuffle(1), emptyHand, NoCard)
+    val p = Player(100, emptyHand, noBustStrategy, 0)
   }
 
   "Card" should "report correct values for 2-10" in {
@@ -64,14 +64,15 @@ class BlackJackDefsSuite extends FlatSpec with Matchers{
   }
 
   "Dealer" should "update hand when he gets a card" in {
-    val dealer = Dealer(Seq.empty[Card], Hand.emptyHand, 0d, NoCard)
-    val newDealer = dealer.getCard(NonAce("9"))
-    newDealer.hand.total shouldBe 9
-    newDealer.firstCard shouldBe NonAce("9")
+    new oneDeckNoBustPlayer {
+      val newDealer = d.getCard(NonAce("9"))
+      newDealer.hand.total shouldBe 9
+      newDealer.firstCard shouldBe NonAce("9")
+    }
   }
 
   it should "deal the exact card to himself if hitDealer is called on shoe with 1 card" in {
-    val dealer = Dealer(Seq(Ace), Hand.emptyHand, 0d, NoCard)
+    val dealer = Dealer(Seq(Ace), Hand.emptyHand, NoCard)
     val newDealer = dealer.hitDealer()
     newDealer.hand.total shouldBe 11
     newDealer.firstCard shouldBe Ace
@@ -79,11 +80,10 @@ class BlackJackDefsSuite extends FlatSpec with Matchers{
   }
 
   it should "reset after reset() is called" in {
-    val dealer = Dealer(Seq(Ace), Hand(Seq(NonAce("2")), 1), 5d, Ace)
+    val dealer = Dealer(Seq(Ace), Hand(Seq(NonAce("2")), 1), Ace)
     val resetDealer = dealer.reset
     resetDealer.hand.total shouldBe 0
     resetDealer.firstCard shouldBe NoCard
-    resetDealer.bet shouldBe 0d
   }
 
   it should "generate 52 cards when 1 deck is shuffled" in {
@@ -95,19 +95,23 @@ class BlackJackDefsSuite extends FlatSpec with Matchers{
   }
 
   "Player" should "update hand when he gets a card" in {
-    val player = Player(100, Hand.emptyHand, Player.noBustStrategy)
-    val newPlayer = player.getCard(NonAce("9"))
-    newPlayer.hand.total shouldBe 9
+    new oneDeckNoBustPlayer {
+      val newPlayer = p.getCard(NonAce("9"))
+      newPlayer.hand.total shouldBe 9
+    }
   }
 
   it should "bet the bankroll amount if that is less than what he intends to bet" in {
-    val player = Player(0, Hand.emptyHand, Player.noBustStrategy)
-    player.bet shouldBe 0
+    new oneDeckNoBustPlayer {
+      val player = p.copy(bankroll = 0)
+      player.bet shouldBe 0
+    }
   }
 
   it should "update his bankroll when he receives credit" in {
-    val player = Player(0, Hand.emptyHand, Player.noBustStrategy)
-    player.credit(10d).bankroll shouldBe 10d
+    new oneDeckNoBustPlayer {
+      p.credit(10d).bankroll shouldBe 10d + p.bankroll
+    }
   }
 
   "hitPlayer" should "give player one card and update dealer shoe" in {
