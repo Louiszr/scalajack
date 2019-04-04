@@ -25,7 +25,7 @@ object BlackJackDefs {
     /*
     Player placing the bet (stake)
      */
-    val newP = p.copy(bankroll = p.bankroll - p.bet, stake = p.bet)
+    val newP = p.copy(bankroll = p.bankroll - p.bet, stake = p.bet + p.stake)
     (d, newP)
   }
   def payOut(d: Dealer, p: Player): (Dealer, Player) = {
@@ -50,12 +50,14 @@ object BlackJackDefs {
      */
     if (d.hand.isBlackJack) (d, p)
     else p.action match {
-      case Hit => {
+      case Hit =>
         val (d1, p1) = hitPlayer(d, p)
         playerAct(d1, p1)
-      }
       case Stand => (d, p)
-      case Double => ???
+      case Double =>
+        val (d1, p1) = bet(d, p)
+        val (d2, p2) = hitPlayer(d1, p1)
+        (d2, p2)
       case Split => ???
     }
   }

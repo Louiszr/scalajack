@@ -135,4 +135,79 @@ class BlackJackDefsSuite extends FlatSpec with Matchers{
       }
     }
   }
+
+  "bet(d, p)" should "subtract bet amount from player bankroll and assign it to player stake" in {
+    new oneDeckNoBustPlayer {
+      val p0 = p.copy(stake = 5d)
+      val (d1, p1) = bet(d, p0)
+      p1.bankroll shouldBe p0.bankroll - p0.bet
+      p1.stake shouldBe p0.bet + p0.stake
+    }
+  }
+
+  "payOut" should "push when both dealer and player have bj" in {
+    new oneDeckNoBustPlayer {
+      val stake = 10
+      val d1 = d.getCard(Ace).getCard(NonAce("10"))
+      val p1 = p.getCard(Ace).getCard(NonAce("10"))
+      val (d2, p2) = payOut(d1, p1.copy(stake = stake))
+      p2.bankroll shouldBe p.bankroll + stake
+      p2.stake shouldBe 0
+    }
+  }
+
+  it should "pay player 3 to 2 if only player have bj" in {
+    new oneDeckNoBustPlayer {
+      val stake = 10
+      val d1 = d.getCard(NonAce("8")).getCard(NonAce("10"))
+      val p1 = p.getCard(Ace).getCard(NonAce("10"))
+      val (d2, p2) = payOut(d1, p1.copy(stake = stake))
+      p2.bankroll shouldBe p.bankroll + stake * 2.5
+      p2.stake shouldBe 0
+    }
+  }
+
+  it should "pay nothing if player busts" in {
+    new oneDeckNoBustPlayer {
+      val stake = 10
+      val d1 = d.getCard(NonAce("8")).getCard(NonAce("10"))
+      val p1 = p.getCard(NonAce("10")).getCard(NonAce("10")).getCard(NonAce("10"))
+      val (d2, p2) = payOut(d1, p1.copy(stake = stake))
+      p2.bankroll shouldBe p.bankroll
+      p2.stake shouldBe 0
+    }
+  }
+
+  it should "pay even to player if only dealer busts" in {
+    new oneDeckNoBustPlayer {
+      val stake = 10
+      val d1 = d.getCard(NonAce("10")).getCard(NonAce("10")).getCard(NonAce("10"))
+      val p1 = p.getCard(NonAce("10")).getCard(NonAce("10"))
+      val (d2, p2) = payOut(d1, p1.copy(stake = stake))
+      p2.bankroll shouldBe p.bankroll + stake * 2
+      p2.stake shouldBe 0
+    }
+  }
+
+  it should "push when player and dealer have the same score < 21" in {
+    new oneDeckNoBustPlayer {
+      val stake = 10
+      val d1 = d.getCard(NonAce("10")).getCard(NonAce("10"))
+      val p1 = p.getCard(NonAce("10")).getCard(NonAce("10"))
+      val (d2, p2) = payOut(d1, p1.copy(stake = stake))
+      p2.bankroll shouldBe p.bankroll + stake
+      p2.stake shouldBe 0
+    }
+  }
+
+  it should "pay even to player if player has higher score than dealer, both < 21" in {
+    new oneDeckNoBustPlayer {
+      val stake = 10
+      val d1 = d.getCard(NonAce("10")).getCard(NonAce("9"))
+      val p1 = p.getCard(NonAce("10")).getCard(NonAce("10"))
+      val (d2, p2) = payOut(d1, p1.copy(stake = stake))
+      p2.bankroll shouldBe p.bankroll + stake * 2
+      p2.stake shouldBe 0
+    }
+  }
 }
