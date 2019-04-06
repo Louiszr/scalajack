@@ -32,15 +32,25 @@ object BlackJackDefs {
     /*
     Dealer decides payout after he finishes
      */
-    val (d1, p1) =
-      if (p.hand.isBlackJack && d.hand.isBlackJack) (d, p.credit(p.stake))
-      else if (p.hand.isBlackJack) (d, p.credit(p.stake * 2.5))
-      else if (p.hand.isBust) (d, p)
-      else if (d.hand.isBust) (d, p.credit(p.stake * 2))
-      else if (d.hand.total == p.hand.total) (d, p.credit(p.stake))
-      else if (d.hand.total < p.hand.total) (d, p.credit(p.stake * 2))
-      else (d, p)
-    reset(d1, p1)
+    val p1 = p.credit(playerLevelPayOut(d, p))
+    reset(d, p1)
+  }
+  def handLevelPayOut(dealerHand: Hand, playerHand: Hand, stake: Double): Double = {
+    if (playerHand.isBlackJack && dealerHand.isBlackJack) stake
+    else if (playerHand.isBlackJack) stake * 2.5
+    else if (playerHand.isBust) 0
+    else if (dealerHand.isBust) stake * 2
+    else if (dealerHand.total == playerHand.total) stake
+    else if (dealerHand.total < playerHand.total) stake * 2
+    else 0
+  }
+  def playerLevelPayOut(d: Dealer, p: Player): Double = {
+    p.playerSplit match {
+      case Some(ps) =>
+        handLevelPayOut(d.hand, p.hand, p.stake) + playerLevelPayOut(d, ps)
+      case None =>
+        handLevelPayOut(d.hand, p.hand, p.stake)
+    }
   }
   def reset(d: Dealer, p: Player): (Dealer, Player) = (d.reset(), p.reset())
   def playerAct(d: Dealer, p: Player): (Dealer, Player) = {
@@ -54,11 +64,18 @@ object BlackJackDefs {
         val (d1, p1) = hitPlayer(d, p)
         playerAct(d1, p1)
       case Stand => (d, p)
-      case Double =>
+      case DoubleDown =>
         val (d1, p1) = bet(d, p)
         val (d2, p2) = hitPlayer(d1, p1)
         (d2, p2)
-      case Split => ???
+      case Split =>
+        val p1 = p.split()
+        val ps0 = p1.playerSplit.get
+        val (d1, ps1) = hitPlayer(d, ps0)
+        val (d2, ps2) = playerAct(d1, ps1)
+        val playerWhoseSplitPlayed = p1.copy(bankroll = ps2.bankroll, playerSplit = Some(ps2))
+        val (d3, p2) = hitPlayer(d2, playerWhoseSplitPlayed)
+        playerAct(d3, p2)
     }
   }
   def dealerAct(d: Dealer, p: Player): (Dealer, Player) = {
@@ -98,12 +115,23 @@ final case class NonAce(number: String) extends Card {
 }
 
 final case class Hand(nonAceCards: Seq[NonAce], aceCounts: Int) {
+  import Hand._
   def total(): Int = {
     val nonAceValues = nonAceCards.foldLeft(0)((acc, card) => acc + card.value)
     if (aceCounts == 0) nonAceValues
     else {
       val softTotal = nonAceValues + aceCounts + 10
       if (softTotal > 21) nonAceValues + aceCounts else softTotal
+    }
+  }
+  def half(): Hand = {
+    /*
+    You can only half if you have a pair
+     */
+    if (aceCounts == 2) emptyHand.getCard(Ace)
+    else nonAceCards match {
+      case firstCard :: rest =>
+        emptyHand.getCard(firstCard)
     }
   }
   val isBust: Boolean = total > 21
@@ -147,7 +175,7 @@ object Dealer {
   }
 }
 
-final case class Player(bankroll: Double, hand: Hand, strategy: Strategy, stake: Double) {
+final case class Player(bankroll: Double, hand: Hand, strategy: Strategy, stake: Double, playerSplit: Option[Player]) {
   import Hand._
   import Player._
   val bet: Double = bankroll.min(5d)
@@ -155,6 +183,10 @@ final case class Player(bankroll: Double, hand: Hand, strategy: Strategy, stake:
   def getCard(card: Card): Player = this.copy(hand = this.hand.getCard(card))
   def credit(moneyReceived: Double) = this.copy(bankroll = this.bankroll + moneyReceived)
   def action(): PlayerAction = strategy(hand)
+  def split(): Player =
+      Player(bankroll - stake, hand.half(), strategy, stake,
+        Some(Player(bankroll - stake, hand.half(), strategy, stake, playerSplit))
+      )
 }
 
 object Player {
@@ -162,7 +194,7 @@ object Player {
   trait PlayerAction
   case object Hit extends PlayerAction
   case object Stand extends PlayerAction
-  case object Double extends PlayerAction
+  case object DoubleDown extends PlayerAction
   case object Split extends PlayerAction
   // TODO: More betting logic
   val noBustStrategy: Strategy = hand => if (hand.total <= 11) Hit else Stand

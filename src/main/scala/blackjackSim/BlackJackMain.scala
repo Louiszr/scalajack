@@ -13,6 +13,7 @@ object BlackJackMain extends App{
     , Hand.emptyHand
     , Player.noBustStrategy
     , 0
+    , None
   )
   val (d1, p1) = game(dealer, player)
   println(d1)

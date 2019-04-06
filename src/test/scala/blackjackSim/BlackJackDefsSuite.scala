@@ -12,7 +12,7 @@ class BlackJackDefsSuite extends FlatSpec with Matchers{
     import Hand._
     import Player._
     val d = Dealer(shuffle(1), emptyHand, NoCard)
-    val p = Player(100, emptyHand, noBustStrategy, 0)
+    val p = Player(100, emptyHand, noBustStrategy, 0, None)
   }
 
   "Card" should "report correct values for 2-10" in {
