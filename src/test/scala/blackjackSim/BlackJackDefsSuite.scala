@@ -15,6 +15,11 @@ class BlackJackDefsSuite extends FlatSpec with Matchers{
     val p = Player(100, emptyHand, noBustStrategy, 0, None)
   }
 
+  trait splitHandPlayer extends oneDeckNoBustPlayer {
+    val splitStake = 5
+    val pSplitted = p.copy(stake = splitStake).getCard(Ace).getCard(Ace).split()
+  }
+
   "Card" should "report correct values for 2-10" in {
     val nums = 2 to 10
     val numberCards = nums.map(_.toString).map(NonAce)
@@ -61,6 +66,12 @@ class BlackJackDefsSuite extends FlatSpec with Matchers{
     val postHit = hand.getCard(Ace).getCard(Ace).getCard(Ace)
     postHit.isBust shouldBe false
     postHit.total shouldBe 12
+  }
+
+  it should "has isBlackJack=false if the hand has been splitted" in {
+    new splitHandPlayer {
+      pSplitted.getCard(NonAce("10")).hand.isBlackJack shouldBe false
+    }
   }
 
   "Dealer" should "update hand when he gets a card" in {
@@ -111,6 +122,21 @@ class BlackJackDefsSuite extends FlatSpec with Matchers{
   it should "update his bankroll when he receives credit" in {
     new oneDeckNoBustPlayer {
       p.credit(10d).bankroll shouldBe 10d + p.bankroll
+    }
+  }
+
+  it should "populate playerSplit when split() is called" in {
+    new splitHandPlayer {
+      pSplitted.bankroll shouldBe p.bankroll - splitStake
+      pSplitted.hand shouldBe Hand.emptyHand.getCard(Ace)
+      pSplitted.strategy shouldBe p.strategy
+      pSplitted.stake shouldBe splitStake
+
+      pSplitted.playerSplit.get.bankroll shouldBe p.bankroll - splitStake
+      pSplitted.playerSplit.get.hand shouldBe Hand.emptyHand.getCard(Ace)
+      pSplitted.playerSplit.get.strategy shouldBe p.strategy
+      pSplitted.playerSplit.get.stake shouldBe splitStake
+      pSplitted.playerSplit.get.playerSplit shouldBe None
     }
   }
 
@@ -208,6 +234,20 @@ class BlackJackDefsSuite extends FlatSpec with Matchers{
       val (d2, p2) = payOut(d1, p1.copy(stake = stake))
       p2.bankroll shouldBe p.bankroll + stake * 2
       p2.stake shouldBe 0
+    }
+  }
+
+  it should "pay Hand(A, 7, 3)(Doubled) = 4 times stake and Hand(A, 10) = 2 times stake when the dealer lost" in {
+    new splitHandPlayer {
+      val d1 = d.copy(hand = Hand.emptyHand.getCard(NonAce("10")).getCard(NonAce("7")))
+      val ps = pSplitted.playerSplit.get
+      val ps1 = ps.copy(bankroll = ps.bankroll - ps.stake
+        , hand = ps.hand.getCard(NonAce("7")).getCard(NonAce("3"))
+        , stake = ps.stake * 2
+      )
+      val p1 = pSplitted.copy(hand = pSplitted.hand.getCard(NonAce("10")), playerSplit = Option(ps1))
+      val (d2, p2) = payOut(d1, p1)
+      p2.bankroll shouldBe pSplitted.bankroll + 6 * pSplitted.stake
     }
   }
 }

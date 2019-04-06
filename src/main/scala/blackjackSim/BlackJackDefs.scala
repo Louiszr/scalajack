@@ -128,6 +128,7 @@ final case class Hand(nonAceCards: Seq[NonAce], aceCounts: Int) {
     /*
     You can only half if you have a pair
      */
+    // TODO: throw exceptions is half is called on non-pairs
     if (aceCounts == 2) emptyHand.getCard(Ace)
     else nonAceCards match {
       case firstCard :: rest =>
