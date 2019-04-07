@@ -114,7 +114,7 @@ final case class NonAce(number: String) extends Card {
   def value(): Int = toIntOption(number).fold(10)(num => num)
 }
 
-final case class Hand(nonAceCards: Seq[NonAce], aceCounts: Int) {
+final case class Hand(nonAceCards: Seq[NonAce], aceCounts: Int, hasSplitted: Boolean = false) {
   import Hand._
   def total(): Int = {
     val nonAceValues = nonAceCards.foldLeft(0)((acc, card) => acc + card.value)
@@ -129,19 +129,19 @@ final case class Hand(nonAceCards: Seq[NonAce], aceCounts: Int) {
     You can only half if you have a pair
      */
     // TODO: throw exceptions is half is called on non-pairs
-    if (aceCounts == 2) emptyHand.getCard(Ace)
+    if (aceCounts == 2) Hand(Seq.empty[NonAce], 1, hasSplitted=true)
     else nonAceCards match {
       case firstCard :: rest =>
-        emptyHand.getCard(firstCard)
+        Hand(Seq(firstCard), 0, hasSplitted=true)
     }
   }
   val isBust: Boolean = total > 21
   def isbetterThan(that: Hand): Boolean = that.isBust || (!this.isBust && this.total > that.total)
   def getCard(card: Card): Hand = card match {
-    case c @ Ace => Hand(nonAceCards, aceCounts + 1)
-    case c @ NonAce(_) => Hand(nonAceCards :+ c, aceCounts)
+    case c @ Ace => Hand(nonAceCards, aceCounts + 1, this.hasSplitted)
+    case c @ NonAce(_) => Hand(nonAceCards :+ c, aceCounts, this.hasSplitted)
   }
-  val isBlackJack: Boolean = aceCounts == 1 && nonAceCards.length == 1 && total == 21
+  val isBlackJack: Boolean = aceCounts == 1 && nonAceCards.length == 1 && total == 21 && !hasSplitted
 }
 
 object Hand {

@@ -128,12 +128,12 @@ class BlackJackDefsSuite extends FlatSpec with Matchers{
   it should "populate playerSplit when split() is called" in {
     new splitHandPlayer {
       pSplitted.bankroll shouldBe p.bankroll - splitStake
-      pSplitted.hand shouldBe Hand.emptyHand.getCard(Ace)
+      pSplitted.hand shouldBe Hand(Seq.empty[NonAce], 1, hasSplitted=true)
       pSplitted.strategy shouldBe p.strategy
       pSplitted.stake shouldBe splitStake
 
       pSplitted.playerSplit.get.bankroll shouldBe p.bankroll - splitStake
-      pSplitted.playerSplit.get.hand shouldBe Hand.emptyHand.getCard(Ace)
+      pSplitted.playerSplit.get.hand shouldBe Hand(Seq.empty[NonAce], 1, hasSplitted=true)
       pSplitted.playerSplit.get.strategy shouldBe p.strategy
       pSplitted.playerSplit.get.stake shouldBe splitStake
       pSplitted.playerSplit.get.playerSplit shouldBe None
