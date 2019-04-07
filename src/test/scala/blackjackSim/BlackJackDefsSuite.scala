@@ -250,4 +250,14 @@ class BlackJackDefsSuite extends FlatSpec with Matchers{
       p2.bankroll shouldBe pSplitted.bankroll + 6 * pSplitted.stake
     }
   }
+
+  "dealerAct" should "keep playing if one hand is blackjack and the splitted hand is < 21" in {
+    new splitHandPlayer {
+      val ps = pSplitted.playerSplit.get
+      val ps1 = ps.getCard(NonAce("9"))
+      val newP = pSplitted.getCard(NonAce("8")).getCard(NonAce("8")).getCard(NonAce("8")).copy(playerSplit = Option(ps1))
+      val (d1, p1) = dealerAct(d, newP)
+      d1 should not equal d
+    }
+  }
 }

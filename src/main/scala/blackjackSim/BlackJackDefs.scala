@@ -85,7 +85,7 @@ object BlackJackDefs {
     else
     Dealer draws to soft 17
      */
-    if (p.hand.isBlackJack || p.hand.isBust) (d, p)
+    if (p.isInactive) (d, p)
     else if (d.hand.total < 17) dealerAct(d.hitDealer, p)
     else (d, p)
   }
@@ -188,6 +188,12 @@ final case class Player(bankroll: Double, hand: Hand, strategy: Strategy, stake:
       Player(bankroll - stake, hand.half(), strategy, stake,
         Some(Player(bankroll - stake, hand.half(), strategy, stake, playerSplit))
       )
+  def isInactive(): Boolean = {
+    /*
+    A player is only inactive if his hand and all splitted hands bj/bust
+     */
+    (hand.isBlackJack || hand.isBust) && playerSplit.fold(true)(_.isInactive())
+  }
 }
 
 object Player {
